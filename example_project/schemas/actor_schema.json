@@ -1,0 +1,8 @@
+{
+    "name": "actor",
+    "version": "0.1.0",
+    "data":{
+        "display_name": "string",
+        "abilities": "schema: abilities"
+    }
+}

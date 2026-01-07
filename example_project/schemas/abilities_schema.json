@@ -1,0 +1,12 @@
+{
+    "name": "abilities",
+    "version": "0.1.0",
+    "data":{
+        "str": "f32",
+        "dex": "f32",
+        "con": "f32",
+        "int": "f32",
+        "wis": "f32",
+        "cha": "f32"
+    }
+}
