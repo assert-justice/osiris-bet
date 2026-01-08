@@ -18,7 +18,9 @@ public static class OsiLoadProject
 		{
 			DisplayName = "Riley"
 		};
+		// OsiSystem.Logger.Log($"user id: {user.Id}");
 		OsiSystem.SetUser(user);
+		OsiSystem.Session.HostId = user.Id;
 		OsiSystem.Session.Gms.Add(user.Id);
 		// Bind Osiris vm modules
 		var vm = OsiSystem.Session.Vm;

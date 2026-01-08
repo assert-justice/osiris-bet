@@ -32,6 +32,10 @@ public static class OsiSystem
     {
         User_ = user;
     }
+    public static bool IsHost()
+    {
+        return User.Id == Session.HostId;
+    }
     public static bool IsGm()
     {
         return Session.Gms.Contains(User.Id);

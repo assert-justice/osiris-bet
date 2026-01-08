@@ -41,7 +41,9 @@ export function init(){
     // Logging.log(Dice.rollDice(5, 6).join(", "));
     // Dice.setEvaluator((_)=>Dice.rollDice(5, 6));
     Dice.setEvaluator((result)=>Dice.rollDice(5, 6));
+    Dice.requestRoll("/r 5d6", (res)=>{Logging.log(res.join(", "));});
+    Dice.requestRoll("/r 5d6", (res)=>{Logging.log(res.join(", "));});
     // Dice.setEvaluator((result)=>{});
-    var res = Dice.evaluate("/r 5d6");
-    Logging.log(res.join(", "));
+    // var res = Dice.evaluate("/r 5d6");
+    // Logging.log(res.join(", "));
 }

@@ -8,6 +8,7 @@ namespace Osiris.Data;
 
 public class OsiSession(Guid id) : OsiData(id), IOsiTryFromNode<OsiSession>
 {
+    public Guid HostId;
     public HashSet<Guid> Gms = [];
     public HashSet<Guid> Players = [];
     public Dictionary<Guid, Guid> UserMapLookup = [];

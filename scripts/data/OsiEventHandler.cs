@@ -92,21 +92,6 @@ public class OsiEventHandler
     }
     public void DispatchEvent(OsiEvent osiEvent)
     {
-        if(osiEvent.Verb == "invoke_callback")
-        {
-            if(!TryInvokeCallback(osiEvent)) OsiSystem.Logger.ReportError("Failed to invoke callback.");
-            return;
-        }
-        // if(Callbacks.TryGetValue(osiEvent.Verb, out var action))
-        // {
-        //     action();
-        //     return;
-        // }
-        if(GlobalMethods.TryGetValue(osiEvent.Verb, out var method))
-        {
-            method(osiEvent);
-            return;
-        }
         if (EventIds.Contains(osiEvent.Id))
         {
             OsiSystem.Logger.ReportError($"Duplicate event id {osiEvent.Id} detected.");
@@ -114,6 +99,18 @@ public class OsiEventHandler
         }
         Events.Add(osiEvent);
         EventIds.Add(osiEvent.Id);
+        if(!osiEvent.ShouldExecute()) return;
+
+        if(osiEvent.Verb == "invoke_callback")
+        {
+            if(!TryInvokeCallback(osiEvent)) OsiSystem.Logger.ReportError("Failed to invoke callback.");
+            return;
+        }
+        if(GlobalMethods.TryGetValue(osiEvent.Verb, out var method))
+        {
+            method(osiEvent);
+            return;
+        }
 
         if(!OsiSystem.Session.TryGetObject(osiEvent.TargetId, out OsiBlob blob))
         {

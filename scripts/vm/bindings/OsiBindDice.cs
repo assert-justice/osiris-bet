@@ -50,8 +50,7 @@ public static class OsiBindDice
             eventHandler.AddCallback(callbackId, callback);
             PrionDict dict = new();
             dict.Set("callback_name", callbackId);
-            diceModule.Set("formula", formula);
-            // dice.Set("single_use?", true);
+            dict.Set("formula", formula);
             OsiEvent.EmitEvent(Guid.Empty, "request_roll", dict);
         };
         diceModule.Set("requestRoll", JsValue.FromObject(vm.Engine, requestRoll));
@@ -69,7 +68,7 @@ public static class OsiBindDice
             callbackPayload.Set("callback_name", callbackName);
             callbackPayload.Set("single_use?", true);
             callbackPayload.Set("payload", result);
-            OsiEvent.EmitEvent(Guid.Empty, "invoke_callback", callbackPayload);
+            OsiEvent.EmitEventSingle(Guid.Empty, "invoke_callback", callbackPayload, e.UserId);
         });
     }
 }
