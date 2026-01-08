@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Osiris.System;
+using Prion.Node;
 
 namespace Osiris.Data;
 
@@ -9,7 +10,6 @@ class Group
     public readonly string Name;
     public readonly string BaseGroup;
     public readonly Func<OsiEvent, OsiData> Constructor;
-    // public bool IsFinished{get; private set;}
     public bool IsSealed{get; private set;}
     readonly Dictionary<string, Action<OsiData, OsiEvent>> Methods = [];
     public Group(string name, string baseGroup, Func<OsiEvent, OsiData> constructor)
@@ -47,6 +47,16 @@ public class OsiEventHandler
     readonly List<OsiEvent> Events = [];
     readonly HashSet<Guid> EventIds = [];
     readonly Dictionary<string, Group> Groups = [];
+    readonly Dictionary<string, Action<OsiEvent>> GlobalMethods = [];
+    readonly Dictionary<string, Action<PrionNode>> Callbacks = [];
+    public void SetGlobalMethod(string name, Action<OsiEvent> method)
+    {
+        GlobalMethods.Add(name, method); // Note, prohibits duplicates. Todo: better error message.
+    }
+    public void AddCallback(string name, Action<PrionNode> action)
+    {
+        Callbacks.Add(name, action);
+    }
     public void AddGroup<T>(string groupName, string baseGroupName, Func<OsiEvent, OsiData> constructor, (string, Action<T, OsiEvent>)[] methods)
         where T : OsiData
     {
@@ -82,6 +92,21 @@ public class OsiEventHandler
     }
     public void DispatchEvent(OsiEvent osiEvent)
     {
+        if(osiEvent.Verb == "invoke_callback")
+        {
+            if(!TryInvokeCallback(osiEvent)) OsiSystem.Logger.ReportError("Failed to invoke callback.");
+            return;
+        }
+        // if(Callbacks.TryGetValue(osiEvent.Verb, out var action))
+        // {
+        //     action();
+        //     return;
+        // }
+        if(GlobalMethods.TryGetValue(osiEvent.Verb, out var method))
+        {
+            method(osiEvent);
+            return;
+        }
         if (EventIds.Contains(osiEvent.Id))
         {
             OsiSystem.Logger.ReportError($"Duplicate event id {osiEvent.Id} detected.");
@@ -114,5 +139,18 @@ public class OsiEventHandler
             groupName = group.BaseGroup;
         }
         OsiSystem.Logger.ReportError($"No method named '{osiEvent.Verb}' was found in group '{groupName}'.");
+    }
+    bool TryInvokeCallback(OsiEvent osiEvent)
+    {
+        if(!osiEvent.Payload.TryAs(out PrionDict dict)) return false;
+        // Todo: add more error handling.
+        if(!dict.TryGet("callback_name", out string callbackName)) return false;
+        if(!dict.TryGet("payload", out PrionNode payload)) return false;
+        bool singleUse = false;
+        if(dict.TryGet("single_use?", out bool su)) singleUse = su;
+        if(!Callbacks.TryGetValue(callbackName, out var action)) return false;
+        action(payload);
+        if(singleUse) Callbacks.Remove(callbackName);
+        return true;
     }
 }

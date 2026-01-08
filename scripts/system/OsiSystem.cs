@@ -16,6 +16,7 @@ public static class OsiSystem
         // Todo: if old session exists, save it to disk.
         // Todo: if session file exists with given id, load it with TryFromNode.
         Session_ = new(Guid.NewGuid());
+        OsiDiceHandler.Reset();
         OsiLoadProject.Load();
         return Session_;
     }

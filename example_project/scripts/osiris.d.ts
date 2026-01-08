@@ -15,11 +15,10 @@ declare module "Osiris"{
         applyEvent(method: string, payload: object): void;
     }
     export namespace Dice{
-        function roll(formula: string, callback: () => DiceGroup[]): void;
-        interface DiceGroup{
-            size: number;
-            rolls: number[];
-        }
+        function evaluate(formula: string): object;
+        function setEvaluator(evaluator: (formula: string) => object): void;
+        function rollDice(count: number, size: number): number[];
+        function requestRoll(formula: string, callback: (result: object)=>void): void;
     }
     export class Group{
         constructor(groupName: string, baseName: string, isSealed?: boolean);

@@ -19,10 +19,12 @@ public static class OsiLoadProject
 			DisplayName = "Riley"
 		};
 		OsiSystem.SetUser(user);
+		OsiSystem.Session.Gms.Add(user.Id);
 		// Bind Osiris vm modules
 		var vm = OsiSystem.Session.Vm;
 		Dictionary<string, JsValue> dict = [];
 		OsiBindLogging.Bind(vm, dict);
+		OsiBindDice.Bind(vm, dict);
 		OsiBindBlob.Bind(vm, dict);
 		OsiBindGroup.Bind(vm, dict);
 		OsiBindMap.Bind(vm, dict);
