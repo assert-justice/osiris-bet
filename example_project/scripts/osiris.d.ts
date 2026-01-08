@@ -23,7 +23,7 @@ declare module "Osiris"{
     }
     export class Group{
         constructor(groupName: string, baseName: string, isSealed?: boolean);
-        addMethod(methodName: string, method: (blob: Blob, event: object)=>void);
+        addMethod(methodName: string, method: (blob: Blob, event: object)=>void): void;
         finish(): void;
     }
     export namespace Map{

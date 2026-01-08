@@ -37,6 +37,7 @@ public class GroupWrapper(string groupName, string baseName, bool isSealed = fal
             return null;
         }
         OsiSystem.Session.EventHandler.AddGroup(GroupName, BaseName, constructor, [..Methods]);
+        if(IsSealed) OsiSystem.Session.EventHandler.SealGroup(GroupName);
     }
 }
 
