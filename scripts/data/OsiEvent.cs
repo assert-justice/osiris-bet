@@ -102,4 +102,11 @@ public class OsiEvent : OsiData, IOsiTryFromNode<OsiEvent>
     {
         EmitEvent(targetId, verb, payload, 0, [visibleTo]);
     }
+    public static void EmitEventStandard(
+        Guid targetId, 
+        string verb,
+        PrionNode payload)
+    {
+        EmitEvent(targetId, verb, payload, Scope.Host | Scope.AllGms, [OsiSystem.User.Id]);
+    }
 }

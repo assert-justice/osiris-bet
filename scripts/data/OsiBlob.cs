@@ -11,7 +11,7 @@ public class OsiBlob(Guid id, string group = "Blob") : OsiData(id, group), IOsiT
     public void SetData(PrionNode data){Data = data;}
     public static bool TryFromNode(PrionNode prionNode, out OsiBlob data)
     {
-        return TryFromNodeFactory(prionNode, (id,group)=>new OsiBlob(id, group), out data, out PrionDict dict);
+        return TryFromNodeFactory(prionNode, (id,group)=>new OsiBlob(id, group), out data);
     }
     protected override bool TryAppend(PrionDict dict)
     {

@@ -49,18 +49,18 @@ namespace Osiris.Vm;
 //     }
 // }
 
-public class EntityWrapper(MapWrapper map) : BlobWrapper
+public class EntityWrapper(string group = "Entity") : BlobWrapper(group)
 {
-    MapWrapper Map = map;
+    //
 }
 
 public class MapWrapper(string group = "Map") : BlobWrapper(group)
 {
-    protected override void Constructor(string group)
-    {
-        var blob = new OsiMapData(Id, group);
-        OsiEvent.EmitEvent(Id, group, blob.ToNode());
-    }
+    // protected override void Constructor(string group)
+    // {
+    //     var blob = new OsiMapData(Id, group);
+    //     OsiEvent.EmitEvent(Id, group, blob.ToNode());
+    // }
 }
 
 public static class OsiBindMap

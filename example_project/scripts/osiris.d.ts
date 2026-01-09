@@ -1,9 +1,5 @@
 declare module "Osiris"{
-    export namespace Logging{
-        function log(...args: any[]): void;
-        function logError(...args: any[]): void;
-    }
-    export class Blob{
+    export class Blob extends DataClass{
         static getBlob(id: string): Blob;
         constructor(group?: string);
         data: object;
@@ -14,6 +10,14 @@ declare module "Osiris"{
         validatePath(schema: string, path: string): boolean;
         applyEvent(method: string, payload: object): void;
     }
+    export class DataClass{
+        static getData(id: string): DataClass;
+        static inherit<T>(classObj: (...args: any[])=>T, methods: string[], isSealed?: boolean): void;
+        private static wrap(id: string): DataClass;
+        constructor(group?: string);
+        getId(): string;
+        applyEvent(method: string, payload: object): void;
+    }
     export namespace Dice{
         function evaluate(formula: string): object;
         function setEvaluator(evaluator: (formula: string) => object): void;
@@ -22,8 +26,12 @@ declare module "Osiris"{
     }
     export class Group{
         constructor(groupName: string, baseName: string, isSealed?: boolean);
-        addMethod(methodName: string, method: (blob: Blob, event: object)=>void): void;
+        addMethod(methodName: string, method: (data: DataClass, event: object)=>void): void;
         finish(): void;
+    }
+    export namespace Logging{
+        function log(...args: any[]): void;
+        function logError(...args: any[]): void;
     }
     export namespace Map{
         class Entity extends Blob{

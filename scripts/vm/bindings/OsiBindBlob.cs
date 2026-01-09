@@ -10,34 +10,34 @@ using Prion.Schema;
 
 namespace Osiris.Vm;
 
-public class BlobWrapper
+public class BlobWrapper(string group): DataClassWrapper(group)
 {
-    protected readonly Guid Id;
-    protected T GetObject<T>() where T : OsiData
-    {
-        return OsiSystem.Session.TryGetObject(Id, out T obj) ? obj : null;
-    }
-    public BlobWrapper(string group = "Blob")
-    {
-        Id = Guid.NewGuid();
-        Constructor(group);
-    }
-    protected virtual void Constructor(string group)
-    {
-        var blob = new OsiBlob(Id, group);
-        OsiEvent.EmitEvent(Id, group, blob.ToNode());
-    }
-    public BlobWrapper(Guid id)
-    {
-        Id = id;
-    }
-    public static BlobWrapper getBlob(Guid id)
-    {
-        if(!OsiSystem.Session.TryGetObject(id, out OsiBlob blob)) return default;
-        BlobWrapper res = new(blob.Id);
-        return res;
-    }
-    public Guid getId(){return Id;}
+    // protected readonly Guid Id;
+    // protected T GetObject<T>() where T : OsiData
+    // {
+    //     return OsiSystem.Session.TryGetObject(Id, out T obj) ? obj : null;
+    // }
+    // public BlobWrapper(string group = "Blob")
+    // {
+    //     Id = Guid.NewGuid();
+    //     Constructor(group);
+    // }
+    // protected virtual void Constructor(string group)
+    // {
+    //     var blob = new OsiBlob(Id, group);
+    //     OsiEvent.EmitEvent(Id, group, blob.ToNode());
+    // }
+    // public BlobWrapper(Guid id)
+    // {
+    //     Id = id;
+    // }
+    // public static BlobWrapper getBlob(Guid id)
+    // {
+    //     if(!OsiSystem.Session.TryGetObject(id, out OsiBlob blob)) return default;
+    //     BlobWrapper res = new(blob.Id);
+    //     return res;
+    // }
+    // public Guid getId(){return Id;}
     public JsValue data
     {
         get
@@ -82,17 +82,6 @@ public class BlobWrapper
         payload.Set("data", prionNode);
         OsiEvent.EmitEvent(Id, "setPath", payload);
     }
-    public void applyEvent(string verb, JsValue jsValue)
-    {
-        string jsonString = OsiSystem.Session.Vm.ToJsonString(jsValue);
-        var jsonNode = JsonNode.Parse(jsonString);
-        if(!PrionNode.TryFromJson(jsonNode, out var prionNode, out string error))
-        {
-            OsiSystem.Logger.ReportError(error);
-            return;
-        }
-        OsiEvent.EmitEvent(Id, verb, prionNode);
-    }
     public bool validate(string schema)
     {
         if(PrionSchemaManager.Validate(schema, GetObject<OsiBlob>().GetData(), out string error)) return true;
@@ -118,14 +107,9 @@ public static class OsiBindBlob
         module.Add("Blob", obj);
 
         // register event handlers
-        static OsiBlob constructor(OsiEvent osiEvent)
+        static OsiBlob constructor(Guid id, string groupName)
         {
-            if(!OsiBlob.TryFromNode(osiEvent.Payload, out var blob))
-            {
-                OsiSystem.Logger.Log("Failed to parse event payload as blob.");
-                return null;
-            }
-            return blob;
+            return new OsiBlob(id, groupName);
         }
         static void setData(OsiBlob blob, OsiEvent osiEvent)
         {
@@ -149,9 +133,6 @@ public static class OsiBindBlob
                 return;
             }
         }
-        OsiSystem.Session.EventHandler.AddGroup<OsiBlob>("Blob", null, constructor, [
-            ("setData",setData),
-            ("setPath",setPath),
-        ]);
+        OsiGroup.CreateGroup<OsiBlob,BlobWrapper>("Blob", [("setData",setData),("setPath",setPath)], constructor, "DataClass");
     }
 }

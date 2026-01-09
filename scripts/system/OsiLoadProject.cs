@@ -26,9 +26,10 @@ public static class OsiLoadProject
 		var vm = OsiSystem.Session.Vm;
 		Dictionary<string, JsValue> dict = [];
 		OsiBindLogging.Bind(vm, dict);
+		OsiBindDataClass.Bind(vm, dict);
 		OsiBindDice.Bind(vm, dict);
-		OsiBindBlob.Bind(vm, dict);
 		OsiBindGroup.Bind(vm, dict);
+		OsiBindBlob.Bind(vm, dict);
 		OsiBindMap.Bind(vm, dict);
 		vm.AddModule("Osiris", dict);
 		// Load contents of project

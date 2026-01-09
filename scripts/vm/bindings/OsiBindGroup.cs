@@ -13,31 +13,25 @@ public class GroupWrapper(string groupName, string baseName, bool isSealed = fal
     readonly string BaseName = baseName;
     readonly bool IsSealed = isSealed;
     readonly bool IsFinished = false;
-    readonly List<(string, Action<OsiBlob, OsiEvent>)> Methods = [];
+    readonly List<(string, Action<OsiData, OsiEvent>)> Methods = [];
 
-    public void addMethod(string methodName, Action<BlobWrapper, JsValue> method)
+    public void addMethod(string methodName, Action<DataClassWrapper, JsValue> method)
     {
         if(IsFinished)
         {
             OsiSystem.Logger.ReportError($"Attempted to add a method to finished group '{GroupName}'.");
             return;
         }
-        void closure(OsiBlob blob, OsiEvent osiEvent)
+        void closure(OsiData blob, OsiEvent osiEvent)
         {
-            method(new BlobWrapper(blob.Id), OsiSystem.Session.Vm.ParseJson(osiEvent.Payload.ToJson().ToJsonString()));
+            if(!OsiSystem.Session.EventHandler.TryCallWrapper(GroupName, blob.Id, out var wrapper)) return;
+            method(wrapper, OsiSystem.Session.Vm.ParseJson(osiEvent.Payload.ToJson().ToJsonString()));
         }
         Methods.Add((methodName, closure));
     }
     public void finish()
     {
-        static OsiBlob constructor(OsiEvent osiEvent)
-        {
-            if(OsiBlob.TryFromNode(osiEvent.Payload, out var blob)) return blob;
-            OsiSystem.Logger.Log("Could not parse payload as OsiBlob.");
-            return null;
-        }
-        OsiSystem.Session.EventHandler.AddGroup(GroupName, BaseName, constructor, [..Methods]);
-        if(IsSealed) OsiSystem.Session.EventHandler.SealGroup(GroupName);
+        OsiGroup.CreateGroup(GroupName, [..Methods], BaseName, IsSealed);
     }
 }
 

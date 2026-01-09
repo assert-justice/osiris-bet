@@ -1,5 +1,6 @@
 using System;
 using Jint;
+using Jint.Native;
 using Jint.Native.Object;
 using Osiris.System;
 
@@ -9,7 +10,7 @@ public class OsiVmModule(OsiVm vm, ObjectInstance obj)
 {
 	public OsiVm Vm = vm;
     public ObjectInstance Object = obj;
-    public bool TryCall(string functionName)
+    public bool TryCall(string functionName, params JsValue[] args)
     {
 		// return vm.Try(e =>
 		// {
@@ -17,7 +18,8 @@ public class OsiVmModule(OsiVm vm, ObjectInstance obj)
 		// });
         try
 		{
-			Object.Get(functionName).Call();
+			if(args.Length > 0) Object.Get(functionName).Call(args);
+			else Object.Get(functionName).Call();
 			return true;
 		}
 		catch (Exception e)

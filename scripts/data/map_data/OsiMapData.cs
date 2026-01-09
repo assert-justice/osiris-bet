@@ -19,7 +19,7 @@ public class OsiMapData(Guid id, string group) : OsiBlob(id, group), IOsiTryFrom
     readonly Dictionary<Guid, OsiEntityData> Entities = [];
     public static bool TryFromNode(PrionNode prionNode, out OsiMapData data)
     {
-        return TryFromNodeFactory(prionNode, (id,group)=> new OsiMapData(id, group), out data, out PrionDict dict);
+        return TryFromNodeFactory(prionNode, (id,group)=> new OsiMapData(id, group), out data);
     }
     protected override bool TryAppend(PrionDict dict)
     {

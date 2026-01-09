@@ -1,38 +1,78 @@
 using System;
 using System.Collections.Generic;
 using Osiris.System;
+using Osiris.Vm;
 using Prion.Node;
+using ConstructorFn = System.Func<System.Guid, string, Osiris.Data.OsiData>;
+using WrapperFn = System.Func<System.Guid, Osiris.Vm.DataClassWrapper>;
+using NamedMethod = (string, System.Action<Osiris.Data.OsiData, Osiris.Data.OsiEvent>);
+using System.Linq;
 
 namespace Osiris.Data;
-
-class Group
+public class OsiGroup
 {
     public readonly string Name;
-    public readonly string BaseGroup;
-    public readonly Func<OsiEvent, OsiData> Constructor;
-    public bool IsSealed{get; private set;}
+    public readonly string BaseGroupName;
+    public readonly ConstructorFn Constructor;
+    public readonly WrapperFn Wrapper;
+    public readonly bool IsSealed;
+    public readonly Type DataType;
+    public readonly Type WrapperType;
     readonly Dictionary<string, Action<OsiData, OsiEvent>> Methods = [];
-    public Group(string name, string baseGroup, Func<OsiEvent, OsiData> constructor)
+    private OsiGroup(
+        Type dataType,
+        Type wrapperType,
+        string name, 
+        string baseGroupName,
+        NamedMethod[] methods,
+        bool isSealed,
+        ConstructorFn constructor,
+        WrapperFn wrapper)
     {
+        DataType = dataType;
+        WrapperType = wrapperType;
         Name = name;
-        BaseGroup = baseGroup;
+        BaseGroupName = baseGroupName;
         Constructor = constructor;
+        Wrapper = wrapper;
+        IsSealed = isSealed;
+        foreach (var (methodName, method) in methods)
+        {
+            Methods.Add(methodName, method);
+        }
     }
-    public void Seal(){IsSealed = true;}
-    public bool AddMethod<T>(string name, Action<T, OsiEvent> action) where T : OsiData
+    public static void CreateGroup<T,U>(
+        string name,
+        (string, Action<T, OsiEvent>)[] methods,
+        Func<Guid, string, T> constructor = null,
+        string baseGroupName = null, 
+        bool isSealed = false)
+        // Func<Guid,U> wrapper = null)
+        where T : OsiData
+        where U : DataClassWrapper
     {
-        if (Methods.ContainsKey(name))
+        NamedMethod fnWrapper(string methodName, Action<T, OsiEvent> method)
         {
-            OsiSystem.Logger.ReportError($"A method of '{name}' already exists in group '{Name}'.");
-            return false;
+            void fn(OsiData obj, OsiEvent osiEvent)
+            {
+                if(obj is T data) method(data, osiEvent);
+                else OsiSystem.Logger.Log($"Mismatched types, expected '{typeof(T)}' but received '{obj.GetType()}'");
+            }
+            return (methodName, fn);
         }
-        void closure(OsiData data, OsiEvent osiEvent)
+
+        NamedMethod[] fns = [.. methods.Select(entry =>
         {
-            if(data is T obj)action(obj, osiEvent);
-            else OsiSystem.Logger.ReportError($"Mismatched type, expected a '{typeof(T)}', received a '{data.GetType()}'");
-        }
-        Methods.Add(name, closure);
-        return true;
+            var(methodName, method) = entry;
+            return fnWrapper(methodName, method);
+        })];
+        OsiGroup group = new(typeof(T), typeof(U), name, baseGroupName, fns, isSealed, constructor, DataClassWrapper.WrapInternal<U>);
+        OsiSystem.Session.EventHandler.AddGroup(group);
+    }
+    public static void CreateGroup(string name, NamedMethod[] methods, string baseGroupName, bool isSealed)
+    {
+        OsiGroup group = new(null, null, name, baseGroupName, methods, isSealed, null, null);
+        OsiSystem.Session.EventHandler.AddGroup(group);
     }
     public bool TryCallMethod(OsiData data, OsiEvent osiEvent)
     {
@@ -42,53 +82,44 @@ class Group
     }
 }
 
+
 public class OsiEventHandler
 {
     readonly List<OsiEvent> Events = [];
     readonly HashSet<Guid> EventIds = [];
-    readonly Dictionary<string, Group> Groups = [];
+    readonly Dictionary<string, OsiGroup> Groups = [];
     readonly Dictionary<string, Action<OsiEvent>> GlobalMethods = [];
-    readonly Dictionary<string, Action<PrionNode>> Callbacks = [];
+    readonly Dictionary<Guid, Action<PrionNode>> Callbacks = [];
+    readonly Dictionary<Type, string> TypeLookup = [];
     public void SetGlobalMethod(string name, Action<OsiEvent> method)
     {
         GlobalMethods.Add(name, method); // Note, prohibits duplicates. Todo: better error message.
     }
-    public void AddCallback(string name, Action<PrionNode> action)
+    public void AddCallback(Guid id, Action<PrionNode> action)
     {
-        Callbacks.Add(name, action);
+        Callbacks.Add(id, action);
     }
-    public void AddGroup<T>(string groupName, string baseGroupName, Func<OsiEvent, OsiData> constructor, (string, Action<T, OsiEvent>)[] methods)
-        where T : OsiData
+    public void AddGroup(OsiGroup group)
     {
-        if (Groups.ContainsKey(groupName))
+        if (Groups.ContainsKey(group.Name))
         {
-            OsiSystem.Logger.ReportError($"A group of name '{groupName}' already exists.");
+            OsiSystem.Logger.ReportError($"A group of name '{group.Name}' already exists.");
             return;
         }
-        if(baseGroupName is not null)
+        if(group.BaseGroupName is not null)
         {
-            if(!Groups.TryGetValue(baseGroupName, out var baseGroup))
+            if(!Groups.TryGetValue(group.BaseGroupName, out var baseGroup))
             {
-                OsiSystem.Logger.ReportError($"No group of name '{baseGroupName}' exists.");
+                OsiSystem.Logger.ReportError($"No group of name '{group.BaseGroupName}' exists.");
                 return;
             }
             if (baseGroup.IsSealed)
             {
-                OsiSystem.Logger.ReportError($"Base group of name '{baseGroupName}' is sealed and cannot be extended.");
+                OsiSystem.Logger.ReportError($"Base group of name '{group.BaseGroupName}' is sealed and cannot be extended.");
                 return;
             }
         }
-        Group group = new(groupName, baseGroupName, constructor);
-        foreach (var (name, method) in methods)
-        {
-            if(!group.AddMethod(name, method)) return;
-        }
-        Groups.Add(groupName, group);
-    }
-    public void SealGroup(string groupName)
-    {
-        if(!Groups.TryGetValue(groupName, out var group)) OsiSystem.Logger.ReportError($"No group of name '{groupName}' exists.");
-        else group.Seal();
+        Groups.Add(group.Name, group);
     }
     public void DispatchEvent(OsiEvent osiEvent)
     {
@@ -106,48 +137,97 @@ public class OsiEventHandler
             if(!TryInvokeCallback(osiEvent)) OsiSystem.Logger.ReportError("Failed to invoke callback.");
             return;
         }
-        if(GlobalMethods.TryGetValue(osiEvent.Verb, out var method))
+
+        if (GlobalMethods.TryGetValue(osiEvent.Verb, out var action))
         {
-            method(osiEvent);
+            action(osiEvent);
             return;
         }
 
-        if(!OsiSystem.Session.TryGetObject(osiEvent.TargetId, out OsiBlob blob))
+        if(!OsiSystem.Session.TryGetObject(osiEvent.TargetId, out OsiData data))
         {
-            if(Groups.TryGetValue(osiEvent.Verb, out var group))
+            if(!TryCallConstructor(osiEvent.TargetId, osiEvent.Verb, out var _))
             {
-                OsiSystem.Session.AddObject(group.Constructor(osiEvent));
-            }
-            else
-            {
-                OsiSystem.Logger.ReportError($"Blob id '{osiEvent.TargetId}' not found and no group of name '{osiEvent.Verb}' exists.");
+                OsiSystem.Logger.ReportError($"Id '{osiEvent.TargetId}' not found and no group of name '{osiEvent.Verb}' exists. Using fallback.");
+                OsiSystem.Session.AddObject(new OsiData(osiEvent.TargetId, osiEvent.Verb));
             }
             return;
         }
-        string groupName = blob.Group;
+        string groupName = data.Group;
+        if(groupName is null && !TryGetGroupByType(data.GetType(), out groupName))
+        {
+            OsiSystem.Logger.ReportError($"No group of name '{data.Group ?? data.GetType().ToString()}' exists, cannot call method '{osiEvent.Verb}'.");
+        }
+        if(TryCallMethod(data.Group, data, osiEvent)) return;
+        OsiSystem.Logger.ReportError($"Could not call method '{osiEvent.Verb}' was found in group '{data.Group ?? data.GetType().ToString()}' or its ancestors.");
+    }
+    public bool TryGetGroupByType(Type type, out string groupName)
+    {
+        return TypeLookup.TryGetValue(type, out groupName);
+    }
+    public bool TryGetGroupName(Guid id, out string groupName)
+    {
+        groupName = default;
+        if(!OsiSystem.Session.TryGetObject(id, out OsiData data))
+        {
+            OsiSystem.Logger.ReportError($"Id '{id}' not found");
+            return false;
+        }
+        if(data.Group is not null)
+        {
+            groupName = data.Group;
+            return true;
+        }
+        return TryGetGroupByType(data.GetType(), out groupName);
+    }
+    bool TryInvokeCallback(OsiEvent osiEvent)
+    {
+        if(!Callbacks.TryGetValue(osiEvent.TargetId, out var action)) return false;
+        action(osiEvent.Payload);
+        Callbacks.Remove(osiEvent.TargetId);
+        return true;
+    }
+    IEnumerable<OsiGroup> TraverseGroups(string groupName)
+    {
         while(groupName is not null)
         {
             if(!Groups.TryGetValue(groupName, out var group))
             {
-                OsiSystem.Logger.ReportError($"No group of name '{groupName}' exists, cannot call method '{osiEvent.Verb}'.");
-                return;
+                OsiSystem.Logger.ReportError($"No group of name '{groupName}' exists.");
+                yield break;
             }
-            if(group.TryCallMethod(blob, osiEvent)) return;
-            groupName = group.BaseGroup;
+            yield return group;
         }
-        OsiSystem.Logger.ReportError($"No method named '{osiEvent.Verb}' was found in group '{groupName}'.");
+        OsiSystem.Logger.ReportError($"No compatible group found.");
     }
-    bool TryInvokeCallback(OsiEvent osiEvent)
+    bool TryCallMethod(string groupName, OsiData data, OsiEvent osiEvent)
     {
-        if(!osiEvent.Payload.TryAs(out PrionDict dict)) return false;
-        // Todo: add more error handling.
-        if(!dict.TryGet("callback_name", out string callbackName)) return false;
-        if(!dict.TryGet("payload", out PrionNode payload)) return false;
-        bool singleUse = false;
-        if(dict.TryGet("single_use?", out bool su)) singleUse = su;
-        if(!Callbacks.TryGetValue(callbackName, out var action)) return false;
-        action(payload);
-        if(singleUse) Callbacks.Remove(callbackName);
-        return true;
+        foreach (var group in TraverseGroups(groupName))
+        {
+            if(group.TryCallMethod(data, osiEvent)) return true;
+        }
+        return false;
+    }
+    bool TryCallConstructor(Guid id, string groupName, out OsiData data)
+    {
+        data = default;
+        foreach (var group in TraverseGroups(groupName))
+        {
+            if(group.Constructor is null) continue;
+            data = group.Constructor(id, groupName);
+            return true;
+        }
+        return false;
+    }
+    public bool TryCallWrapper(string groupName, Guid id, out DataClassWrapper wrapper)
+    {
+        wrapper = default;
+        foreach (var group in TraverseGroups(groupName))
+        {
+            if(group.Wrapper is null) continue;
+            wrapper = group.Wrapper(id);
+            return true;
+        }
+        return false;
     }
 }

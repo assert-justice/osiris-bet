@@ -41,34 +41,29 @@ public static class OsiBindDice
         var eventHandler = OsiSystem.Session.EventHandler;
         Action<string, Action<JsValue>> requestRoll = (formula, jsCallback) =>
         {
-            string callbackId = Guid.NewGuid().ToString();
+            Guid callbackId = Guid.NewGuid();
             void callback(PrionNode payload)
             {
                 if(!payload.TryAs(out PrionString result)) return;
                 jsCallback(vm.ParseJson(result.Value));
             }
             eventHandler.AddCallback(callbackId, callback);
-            PrionDict dict = new();
-            dict.Set("callback_name", callbackId);
-            dict.Set("formula", formula);
-            OsiEvent.EmitEvent(Guid.Empty, "request_roll", dict);
+            // PrionDict dict = new();
+            // dict.Set("callback_name", callbackId);
+            // dict.Set("formula", formula);
+            OsiEvent.EmitEvent(callbackId, "request_roll", new PrionString(formula));
         };
         diceModule.Set("requestRoll", JsValue.FromObject(vm.Engine, requestRoll));
         module.Add("Dice", diceModule);
 
         // Bind event handlers
-        // This event is gm only. Todo: add visibility to events
-        eventHandler.SetGlobalMethod("request_roll", (e) =>
+        eventHandler.SetGlobalMethod("request_roll", e =>
         {
-            if(!e.Payload.TryAs(out PrionDict dict)) return;
-            if(!dict.TryGet("callback_name", out PrionString callbackName)) return;
-            if(!dict.TryGet("formula", out string formula)) return;
-            string result = OsiDiceHandler.Evaluate(formula);
-            PrionDict callbackPayload = new();
-            callbackPayload.Set("callback_name", callbackName);
-            callbackPayload.Set("single_use?", true);
-            callbackPayload.Set("payload", result);
-            OsiEvent.EmitEventSingle(Guid.Empty, "invoke_callback", callbackPayload, e.UserId);
+            if(!e.Payload.TryAs(out PrionString formula)) return;
+            // if(!dict.TryGet("callback_name", out PrionString callbackName)) return;
+            // if(!dict.TryGet("formula", out string formula)) return;
+            string result = OsiDiceHandler.Evaluate(formula.Value);
+            OsiEvent.EmitEventSingle(e.TargetId, "invoke_callback", new PrionString(result), e.UserId);
         });
     }
 }

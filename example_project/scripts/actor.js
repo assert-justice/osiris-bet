@@ -36,4 +36,4 @@ export class Actor extends Blob{
     }
 }
 
-Class.registerClass(Actor, "Blob", ["damage"]);
+// Class.registerClass(Actor, "Blob", ["damage"]);

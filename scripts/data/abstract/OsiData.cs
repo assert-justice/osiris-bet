@@ -3,7 +3,7 @@ using Prion.Node;
 
 namespace Osiris.Data;
 
-public abstract class OsiData(Guid id, string group = "")
+public class OsiData(Guid id, string group = null) : IOsiTryFromNode<OsiData>
 {
     public readonly Guid Id = id;
     public string Group = group;
@@ -21,11 +21,10 @@ public abstract class OsiData(Guid id, string group = "")
         if(!prionDict.TryGet("id", out id)) return false;
         return true;
     }
-    protected static bool TryFromNodeFactory<T>(PrionNode prionNode, Func<Guid, string, T> factory, out T data, out PrionDict dict) where T : OsiData
+    protected static bool TryFromNodeFactory<T>(PrionNode prionNode, Func<Guid, string, T> factory, out T data) where T : OsiData
     {
-        data = default;
         string group = "[no group]";
-        BaseTryFromNode(prionNode, out dict, out Guid id);
+        BaseTryFromNode(prionNode, out PrionDict dict, out Guid id);
         if(dict.TryGet("group?", out string groupName)) group = groupName;
         data = factory(id, group);
         if(!data.TryAppend(dict)) return false;
@@ -46,5 +45,10 @@ public abstract class OsiData(Guid id, string group = "")
             return true;
         }
         else return false;
+    }
+
+    public static bool TryFromNode(PrionNode prionNode, out OsiData data)
+    {
+        return TryFromNodeFactory(prionNode, (id, group)=>new(id, group), out data);
     }
 }
