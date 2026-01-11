@@ -12,32 +12,6 @@ namespace Osiris.Vm;
 
 public class BlobWrapper(string group): DataClassWrapper(group)
 {
-    // protected readonly Guid Id;
-    // protected T GetObject<T>() where T : OsiData
-    // {
-    //     return OsiSystem.Session.TryGetObject(Id, out T obj) ? obj : null;
-    // }
-    // public BlobWrapper(string group = "Blob")
-    // {
-    //     Id = Guid.NewGuid();
-    //     Constructor(group);
-    // }
-    // protected virtual void Constructor(string group)
-    // {
-    //     var blob = new OsiBlob(Id, group);
-    //     OsiEvent.EmitEvent(Id, group, blob.ToNode());
-    // }
-    // public BlobWrapper(Guid id)
-    // {
-    //     Id = id;
-    // }
-    // public static BlobWrapper getBlob(Guid id)
-    // {
-    //     if(!OsiSystem.Session.TryGetObject(id, out OsiBlob blob)) return default;
-    //     BlobWrapper res = new(blob.Id);
-    //     return res;
-    // }
-    // public Guid getId(){return Id;}
     public JsValue data
     {
         get
@@ -134,5 +108,6 @@ public static class OsiBindBlob
             }
         }
         OsiGroup.CreateGroup<OsiBlob,BlobWrapper>("Blob", [("setData",setData),("setPath",setPath)], constructor, "DataClass");
+        OsiSystem.Session.EventHandler.SetTypeLookup<OsiBlob>("Blob");
     }
 }

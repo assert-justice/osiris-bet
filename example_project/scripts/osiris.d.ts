@@ -35,25 +35,30 @@ declare module "Osiris"{
     }
     export namespace Map{
         class Entity extends Blob{
-            constructor(map: Map); //if current user is not gm sets them as owner automatically
+            constructor(); //if current user is not gm sets them as owner automatically
             name: string;
-            position: [number, number, number];
+            isToken: boolean;
+            angle: number;
+            getSize(): [number, number, number];
+            setSize(x: number, y: number, z: number): void;
+            getPosition(): [number, number, number];
+            setPosition(x: number, y: number, z: number): void;
             isOwnedBy(userId?: string): boolean; // if userId is absent use current user id;
             addOwner(userId: string): void; // gm only?
             removeOwner(userId: string): boolean; // gm only?
             listOwners(): string[]; // gm only?
-            free(): void; // remove from map and delete, owner and gm only
-            isToken: boolean;
         }
         class Map extends Blob{
             constructor();
             name: string;
-            size: [number, number, number];
             isFogOfWarEnabled: boolean;
-            setCells(coords: [number, number, number, number][], value: number): void;
-            getCell(coord: [number, number, number, number]): number;
-            listEntities(pred?: (ent: Entity)=>boolean): Entity[];
-            getEntity(id: string): Entity;
+            getCell(x: number, y: number, z?: number, w?: number): number;
+            setCells(coords: number[][], value: number): void;
+            getEntity(id: string): Entity | undefined;
+            listEntities(): Entity[];
+            listTokens(): Entity[];
+            addEntity(entity: Entity): void; // if current user is not gm sets them as owner automatically
+            removeEntity(id: string): void; // owner and gm only
         }
     }
 }

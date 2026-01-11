@@ -133,6 +133,10 @@ public class PrionDict : PrionNode
 	{
 		Value[key] = new PrionF32(value);
 	}
+	public void Set(string key, int value)
+	{
+		Value[key] = new PrionI32(value);
+	}
 	public void Set(string key, ulong value)
 	{
 		Value[key] = new PrionU64(value);

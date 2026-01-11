@@ -12,8 +12,9 @@ using CellCoord = (int, int, int, int);
 public class OsiMapData(Guid id, string group) : OsiBlob(id, group), IOsiTryFromNode<OsiMapData>
 {
     public string DisplayName = "[A Mysterious Location]";
-    public Vector3I Size = new(12, 18, 1);
-    public bool FogOfWarEnabled = false;
+    public Vector3I Size = Vector3I.Zero;
+    public Vector3I Origin = Vector3I.Zero;
+    public bool IsFogOfWarEnabled = false;
     readonly Dictionary<CellCoord, int> Cells = [];
     readonly HashSet<Guid> EntityIds = [];
     readonly Dictionary<Guid, OsiEntityData> Entities = [];
@@ -25,9 +26,9 @@ public class OsiMapData(Guid id, string group) : OsiBlob(id, group), IOsiTryFrom
     {
         if(!base.TryAppend(dict)) return false;
         if(!dict.TryGet("display_name", out DisplayName)) return false;
-        if(!dict.TryGet("size", out PrionVector3I size)) return false;
-        Size = new(size.X, size.Y, size.Z);
-        if(dict.TryGet("fog_of_war_enabled?", out bool fow)) FogOfWarEnabled = fow;
+        // if(!dict.TryGet("size", out PrionVector3I size)) return false;
+        // Size = new(size.X, size.Y, size.Z);
+        if(dict.TryGet("fog_of_war_enabled?", out bool fow)) IsFogOfWarEnabled = fow;
         if(dict.TryGet("cells?", out PrionArray cells))
         {
             foreach (var item in cells.Value)
@@ -42,6 +43,7 @@ public class OsiMapData(Guid id, string group) : OsiBlob(id, group), IOsiTryFrom
                 if(!int.TryParse(values[0], out int val)) return false;
                 Cells[(x,y,z,w)] = val;
             }
+            // Todo: find extents (size and origin)
         }
         if(dict.TryGet("entities?", out HashSet<Guid> ids))
         {
@@ -59,8 +61,8 @@ public class OsiMapData(Guid id, string group) : OsiBlob(id, group), IOsiTryFrom
     {
         var dict = base.ToNode();
         dict.Set("display_name", DisplayName);
-        dict.Set("size", new PrionVector3I(Size.X, Size.Y, Size.Z));
-        dict.Set("fog_of_war_enabled?", FogOfWarEnabled);
+        // dict.Set("size", new PrionVector3I(Size.X, Size.Y, Size.Z));
+        dict.Set("fog_of_war_enabled?", IsFogOfWarEnabled);
         if(Cells.Count > 0) dict.Set("cells?", new PrionArray([..Cells.Select(c => {
             var(coord, val) = c;
             var(x,y,z,w) = coord;
@@ -107,5 +109,13 @@ public class OsiMapData(Guid id, string group) : OsiBlob(id, group), IOsiTryFrom
             if(TryGetEntity(item, out var ent)) entities.Add(ent);
         }
         return [..entities];
+    }
+    public void AddEntity(OsiEntityData entity)
+    {
+        Entities.Add(entity.Id, entity);
+    }
+    public bool RemoveEntity(Guid entityId)
+    {
+        return Entities.Remove(entityId);
     }
 }

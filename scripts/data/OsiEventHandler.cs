@@ -91,6 +91,10 @@ public class OsiEventHandler
     readonly Dictionary<string, Action<OsiEvent>> GlobalMethods = [];
     readonly Dictionary<Guid, Action<PrionNode>> Callbacks = [];
     readonly Dictionary<Type, string> TypeLookup = [];
+    public void SetTypeLookup<T>(string group) where T : OsiData
+    {
+        TypeLookup.Add(typeof(T), group);
+    }
     public void SetGlobalMethod(string name, Action<OsiEvent> method)
     {
         GlobalMethods.Add(name, method); // Note, prohibits duplicates. Todo: better error message.

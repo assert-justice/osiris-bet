@@ -76,5 +76,6 @@ public static class OsiBindDataClass
 
         // register group
         OsiGroup.CreateGroup<OsiData, DataClassWrapper>("DataClass", [], (id, group)=>new OsiData(id, group));
+        OsiSystem.Session.EventHandler.SetTypeLookup<OsiData>("DataClass");
     }
 }
