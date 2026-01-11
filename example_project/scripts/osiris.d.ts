@@ -35,7 +35,7 @@ declare module "Osiris"{
     }
     export namespace Map{
         class Entity extends Blob{
-            constructor(); //if current user is not gm sets them as owner automatically
+            constructor(group?: string); //if current user is not gm sets them as owner automatically
             name: string;
             isToken: boolean;
             angle: number;
@@ -49,7 +49,7 @@ declare module "Osiris"{
             listOwners(): string[]; // gm only?
         }
         class Map extends Blob{
-            constructor();
+            constructor(group?: string);
             name: string;
             isFogOfWarEnabled: boolean;
             getCell(x: number, y: number, z?: number, w?: number): number;

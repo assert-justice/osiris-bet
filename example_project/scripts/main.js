@@ -1,6 +1,6 @@
 // import { Logging, Blob } from "Osiris";
 // import { Actor } from "actor";
-import { Dice, Logging } from "Osiris";
+import { Dice, Logging, Map } from "Osiris";
 // import { Blob, Logging } from "Osiris";
 
 // class Actor extends Blob{}
@@ -40,9 +40,13 @@ export function init(){
     // Logging.log(cell.top.toString());
     // Logging.log(Dice.rollDice(5, 6).join(", "));
     // Dice.setEvaluator((_)=>Dice.rollDice(5, 6));
-    Dice.setEvaluator((result)=>Dice.rollDice(5, 6));
-    Dice.requestRoll("/r 5d6", (res)=>{Logging.log(res.join(", "));});
-    Dice.requestRoll("/r 5d6", (res)=>{Logging.log(res.join(", "));});
+    // Dice.setEvaluator((result)=>Dice.rollDice(5, 6));
+    // Dice.requestRoll("/r 5d6", (res)=>{Logging.log(res.join(", "));});
+    // Dice.requestRoll("/r 5d6", (res)=>{Logging.log(res.join(", "));});
+    let ent = new Map.Entity();
+    for (const element of ent.listOwners()) {
+        Logging.log(element);
+    }
     // Dice.setEvaluator((result)=>{});
     // var res = Dice.evaluate("/r 5d6");
     // Logging.log(res.join(", "));

@@ -23,14 +23,14 @@ public class DataClassWrapper
             OsiSystem.Session.EventHandler.TryGetGroupByType(GetType(), out GroupName);
         }
     }
-    protected T GetObject<T>() where T : OsiData
-    {
-        return OsiSystem.Session.TryGetObject(Id, out T obj) ? obj : null;
-    }
     public DataClassWrapper(string groupName = null)
     {
         Id = Guid.NewGuid();
-        OsiEvent.EmitEventStandard(Id, groupName, new PrionNull());
+        OsiEvent.EmitEventStandard(Id, groupName, new PrionString(groupName));
+    }
+    protected T GetObject<T>() where T : OsiData
+    {
+        return OsiSystem.Session.TryGetObject(Id, out T obj) ? obj : null;
     }
     public static T WrapInternal<T>(Guid id) where T : DataClassWrapper
     {
@@ -75,7 +75,13 @@ public static class OsiBindDataClass
         module.Add("DataClass", obj);
 
         // register group
-        OsiGroup.CreateGroup<OsiData, DataClassWrapper>("DataClass", [], (id, group)=>new OsiData(id, group));
+
+        static OsiData constructor(OsiEvent osiEvent)
+        {
+            if(!osiEvent.Payload.TryAs(out PrionString res)) return null;
+            return new OsiData(osiEvent.TargetId, res.Value);
+        }
+        OsiGroup.CreateGroup<OsiData, DataClassWrapper>("DataClass", [], constructor);
         OsiSystem.Session.EventHandler.SetTypeLookup<OsiData>("DataClass");
     }
 }

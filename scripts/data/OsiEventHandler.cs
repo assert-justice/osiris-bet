@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Osiris.System;
 using Osiris.Vm;
 using Prion.Node;
-using ConstructorFn = System.Func<System.Guid, string, Osiris.Data.OsiData>;
+using ConstructorFn = System.Func<Osiris.Data.OsiEvent, Osiris.Data.OsiData>;
 using WrapperFn = System.Func<System.Guid, Osiris.Vm.DataClassWrapper>;
 using NamedMethod = (string, System.Action<Osiris.Data.OsiData, Osiris.Data.OsiEvent>);
 using System.Linq;
@@ -44,7 +44,7 @@ public class OsiGroup
     public static void CreateGroup<T,U>(
         string name,
         (string, Action<T, OsiEvent>)[] methods,
-        Func<Guid, string, T> constructor = null,
+        Func<OsiEvent, T> constructor = null,
         string baseGroupName = null, 
         bool isSealed = false)
         // Func<Guid,U> wrapper = null)
@@ -150,11 +150,11 @@ public class OsiEventHandler
 
         if(!OsiSystem.Session.TryGetObject(osiEvent.TargetId, out OsiData data))
         {
-            if(!TryCallConstructor(osiEvent.TargetId, osiEvent.Verb, out var _))
+            if(TryCallConstructor(osiEvent, osiEvent.Verb, out var obj))
             {
-                OsiSystem.Logger.ReportError($"Id '{osiEvent.TargetId}' not found and no group of name '{osiEvent.Verb}' exists. Using fallback.");
-                OsiSystem.Session.AddObject(new OsiData(osiEvent.TargetId, osiEvent.Verb));
+                OsiSystem.Session.AddObject(obj);
             }
+            else OsiSystem.Logger.ReportError($"Id '{osiEvent.TargetId}' not found and no group of name '{osiEvent.Verb}' exists. Using fallback.");
             return;
         }
         string groupName = data.Group;
@@ -212,13 +212,14 @@ public class OsiEventHandler
         }
         return false;
     }
-    bool TryCallConstructor(Guid id, string groupName, out OsiData data)
+    bool TryCallConstructor(OsiEvent osiEvent, string groupName, out OsiData data)
     {
         data = default;
+
         foreach (var group in TraverseGroups(groupName))
         {
             if(group.Constructor is null) continue;
-            data = group.Constructor(id, groupName);
+            data = group.Constructor(osiEvent);
             return true;
         }
         return false;

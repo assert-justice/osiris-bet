@@ -81,9 +81,10 @@ public static class OsiBindBlob
         module.Add("Blob", obj);
 
         // register event handlers
-        static OsiBlob constructor(Guid id, string groupName)
+        static OsiBlob constructor(OsiEvent osiEvent)
         {
-            return new OsiBlob(id, groupName);
+            if(!osiEvent.Payload.TryAs(out PrionString res)) return null;
+            return new OsiBlob(osiEvent.TargetId, res.Value);
         }
         static void setData(OsiBlob blob, OsiEvent osiEvent)
         {

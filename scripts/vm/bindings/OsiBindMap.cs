@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Godot;
 using Jint.Native;
 using Jint.Runtime.Interop;
 using Osiris.Data;
@@ -10,12 +9,8 @@ using Prion.Node;
 
 namespace Osiris.Vm;
 
-public class EntityWrapper : BlobWrapper
+public class EntityWrapper(string group = "Entity") : BlobWrapper(group)
 {
-    public EntityWrapper(string group = "Entity"): base(group)
-    {
-        //
-    }
     public string name
     {
         get => GetObject<OsiEntityData>().DisplayName;
@@ -170,6 +165,11 @@ public static class OsiBindMap
         handler.SetTypeLookup<OsiEntityData>("Entity");
 
         // register map group
+        static OsiMapData mapConstructor(OsiEvent osiEvent)
+        {
+            if(!osiEvent.Payload.TryAs(out PrionString res)) return null;
+            return new OsiMapData(osiEvent.TargetId, res.Value);
+        }
         void mapSetDisplayName(OsiMapData blob, OsiEvent osiEvent)
         {
             if(!osiEvent.Payload.TryAs(out PrionString prionString)){
@@ -234,9 +234,18 @@ public static class OsiBindMap
             ("set_cells", mapSetCells),
             ("add_entity", mapAddEntity),
             ("remove_entity", mapRemoveEntity),
-        ], (id,group)=>new OsiMapData(id, group), "Blob");
+        ], mapConstructor, "Blob");
 
         // register entity group
+
+        static OsiEntityData entityConstructor(OsiEvent osiEvent)
+        {
+            if(!osiEvent.Payload.TryAs(out PrionString group)) return null;
+            OsiEntityData res = new(osiEvent.TargetId, group.Value);
+            res.ControlledBy.Add(osiEvent.UserId);
+            // OsiSystem.Logger.Log("id at constructor: ", osiEvent.TargetId);
+            return res;
+        }
 
         void entitySetDisplayName(OsiEntityData entity, OsiEvent osiEvent)
         {
@@ -308,6 +317,6 @@ public static class OsiBindMap
             ("set_position", entitySetPosition),
             ("add_owner", entityAddOwner),
             ("remove_owner", entityRemoveOwner),
-        ], (id, group)=> new OsiEntityData(id, group), "Blob");
+        ], entityConstructor, "Blob");
     }
 }
