@@ -8,7 +8,7 @@ declare module "Osiris"{
         setPath(path: string, data: object, canAdd?: boolean, canChangeType?: boolean): void;
         validateData(schema: string): boolean;
         validatePath(schema: string, path: string): boolean;
-        applyEvent(method: string, payload: object): void;
+        // applyEvent(method: string, payload: object): void;
     }
     export class DataClass{
         static getData(id: string): DataClass;
@@ -34,19 +34,27 @@ declare module "Osiris"{
         function logError(...args: any[]): void;
     }
     export namespace Map{
+        class Area extends Blob{
+            constructor(group?: string);
+        }
         class Entity extends Blob{
             constructor(group?: string); //if current user is not gm sets them as owner automatically
             name: string;
             isToken: boolean;
             angle: number;
+            isVisibleToAll: boolean;
             getSize(): [number, number, number];
             setSize(x: number, y: number, z: number): void;
             getPosition(): [number, number, number];
             setPosition(x: number, y: number, z: number): void;
             isOwnedBy(userId?: string): boolean; // if userId is absent use current user id;
-            addOwner(userId: string): void; // gm only?
-            removeOwner(userId: string): boolean; // gm only?
-            listOwners(): string[]; // gm only?
+            addOwner(userId: string): void; 
+            removeOwner(userId: string): boolean; 
+            listOwners(): string[]; 
+            isVisibleTo(userId?: string): boolean; // if userId is absent use current user id;
+            addViewer(userId: string): void; 
+            removeViewer(userId: string): boolean; 
+            listViewers(): string[]; 
         }
         class Map extends Blob{
             constructor(group?: string);

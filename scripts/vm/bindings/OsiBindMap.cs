@@ -27,6 +27,14 @@ public class EntityWrapper(string group = "Entity") : BlobWrapper(group)
             OsiEvent.EmitEventStandard(Id, "set_is_token", new PrionBoolean(value));
         }
     }
+    public bool isVisibleToAll
+    {
+        get => GetObject<OsiEntityData>().IsVisibleToAll;
+        set
+        {
+            OsiEvent.EmitEventStandard(Id, "set_is_visible_to_all", new PrionBoolean(value));
+        }
+    }
     public float angle
     {
         get => GetObject<OsiEntityData>().Angle;
@@ -75,12 +83,33 @@ public class EntityWrapper(string group = "Entity") : BlobWrapper(group)
     }
     public void removeOwner(Guid id)
     {
-        OsiEvent.EmitEventStandard(Id, "add_owner", new PrionGuid(id));
+        OsiEvent.EmitEventStandard(Id, "remove_owner", new PrionGuid(id));
     }
     public JsArray listOwners()
     {
         JsString[] controlledBy = [.. GetObject<OsiEntityData>().ControlledBy.Select(static id => (JsString)id.ToString())];
         return new(OsiSystem.Session.Vm.Engine, controlledBy);
+    }
+    public bool isVisibleTo(Guid id)
+    {
+        return GetObject<OsiEntityData>().VisibleTo.Contains(id);
+    }
+    public bool isVisibleTo()
+    {
+        return GetObject<OsiEntityData>().VisibleTo.Contains(OsiSystem.User.Id);
+    }
+    public void addViewer(Guid id)
+    {
+        OsiEvent.EmitEventStandard(Id, "add_viewer", new PrionGuid(id));
+    }
+    public void removeViewer(Guid id)
+    {
+        OsiEvent.EmitEventStandard(Id, "remove_viewer", new PrionGuid(id));
+    }
+    public JsArray listViewers()
+    {
+        JsString[] visibleTo = [.. GetObject<OsiEntityData>().VisibleTo.Select(static id => (JsString)id.ToString())];
+        return new(OsiSystem.Session.Vm.Engine, visibleTo);
     }
 }
 
@@ -243,6 +272,7 @@ public static class OsiBindMap
             if(!osiEvent.Payload.TryAs(out PrionString group)) return null;
             OsiEntityData res = new(osiEvent.TargetId, group.Value);
             res.ControlledBy.Add(osiEvent.UserId);
+            res.VisibleTo.Add(osiEvent.UserId);
             // OsiSystem.Logger.Log("id at constructor: ", osiEvent.TargetId);
             return res;
         }
@@ -309,6 +339,30 @@ public static class OsiBindMap
             }
             entity.ControlledBy.Remove(value.Value);
         }
+        void entityAddViewer(OsiEntityData entity, OsiEvent osiEvent)
+        {
+            if(!osiEvent.Payload.TryAs(out PrionGuid value)){
+                OsiSystem.Logger.ReportError("Could not parse event payload, wrong type.");
+                return;
+            }
+            entity.VisibleTo.Add(value.Value);
+        }
+        void entityRemoveViewer(OsiEntityData entity, OsiEvent osiEvent)
+        {
+            if(!osiEvent.Payload.TryAs(out PrionGuid value)){
+                OsiSystem.Logger.ReportError("Could not parse event payload, wrong type.");
+                return;
+            }
+            entity.VisibleTo.Remove(value.Value);
+        }
+        void entitySetIsVisibleToAll(OsiEntityData entity, OsiEvent osiEvent)
+        {
+            if(!osiEvent.Payload.TryAs(out PrionBoolean value)){
+                OsiSystem.Logger.ReportError("Could not parse event payload, wrong type.");
+                return;
+            }
+            entity.IsVisibleToAll = value.Value;
+        }
         OsiGroup.CreateGroup<OsiEntityData, EntityWrapper>("Entity", [
             ("set_display_name", entitySetDisplayName),
             ("set_is_token", entitySetIsToken),
@@ -317,6 +371,9 @@ public static class OsiBindMap
             ("set_position", entitySetPosition),
             ("add_owner", entityAddOwner),
             ("remove_owner", entityRemoveOwner),
+            ("add_viewer", entityAddViewer),
+            ("remove_viewer", entityRemoveViewer),
+            ("set_is_visible_to_all", entitySetIsVisibleToAll),
         ], entityConstructor, "Blob");
     }
 }
